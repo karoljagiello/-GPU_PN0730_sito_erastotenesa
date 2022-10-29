@@ -6,53 +6,56 @@
 
 using namespace std;
 
-vector<int> eratostenes_siege(int n) {
+vector<int> eratostenes_sieve(int n) {
     int sqrt_n = (int) sqrt(n);
-    int* siege = new int[n];
-    int p;
+    bool* sieve = new bool[n]();
     vector<int> primes = {};
 
     for (int i = 2; i <= sqrt_n; i++) {
-        if (siege[i] == 0) {
+        if (sieve[i] == false) {
             primes.push_back(i);
-            p = i * i;
-            while (p <= n) {
-                siege[p] = 1;
-                p += i;
+
+            for (int p = i*i; p <= n; p+=i) {
+                sieve[p] = true;
             }
         }
     }
 
     for (int i = sqrt_n + 1; i < n; i++) {
-        if (siege[i] == 0) {
+        if (sieve[i] == false) {
             primes.push_back(i);
         }
     }
 
-    delete siege;
-
+    delete[] sieve;
     return primes;
 }
 
 int main(int argc, char** argv) {
-    clock_t begin = clock();
     int n;
+    int should_print = true;
 
     char next_option;
     if( (next_option = getopt(argc, argv, "n:")) == -1 || next_option == 63) {
-        printf("Nie podano granicy wyznaczania liczb pierwszych. Podaj tą wartosc jako flage '-n'\n");
+        printf("Nie podano granicy wyznaczania liczb pierwszych. Podaj te wartosc jako flage '-n'\n");
         return 0;
     }
     else {
         n = atoi(optarg);
     }
+    if (next_option = getopt(argc, argv, "silent:") != -1){
+        should_print = false;
+    }
 
-    vector<int> primes = eratostenes_siege(n);
-    for (int i: primes) {
-        printf("%d ", i);
+    clock_t begin = clock();
+    vector<int> primes = eratostenes_sieve(n);
+    clock_t end = clock();
+    if(should_print){
+        for (int i: primes) {
+            printf("%d ", i);
+        }
     }
     printf("\n");
-        clock_t end = clock();
     double time_spent = (double)(end - begin) / CLOCKS_PER_SEC;
     printf("Czas ekzegucji algorytmu w wersji sekwencyjnej na CPU: %lfs\n", time_spent);
 

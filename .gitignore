@@ -1,2 +1,6 @@
 serial_cpu
 parallel_cpu
+# windows executables also
+*.exe 
+# VS code
+.vscode

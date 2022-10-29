@@ -5,7 +5,7 @@
 #include <unistd.h>
 #include <time.h>
 
-void eratostenes_siege_parallel(int argc, char **argv) {
+void eratostenes_sieve_parallel(int argc, char **argv) {
     int n; // granica wyznaczanych liczb pierwszych
     int sqrt_n; // pierwiastek granicy wyznaczanych liczb pierwszych
     int *list1; // lista liczb mniejszych lub równych od pierwiastka z n
@@ -148,11 +148,11 @@ void eratostenes_siege_parallel(int argc, char **argv) {
 int main(int argc, char **argv) {
     clock_t begin = clock();
 
-    eratostenes_siege_parallel(argc, argv);
+    eratostenes_sieve_parallel(argc, argv);
 
     clock_t end = clock();
     double time_spent = (double)(end - begin) / CLOCKS_PER_SEC;
-    printf("Czas ekzegucji algorytmu w wersji równoległej na CPU: %lfs\n", time_spent);
+    printf("Czas ekzegucji algorytmu w wersji rownoległej na CPU: %lfs\n", time_spent);
 
     return 0;
 }
