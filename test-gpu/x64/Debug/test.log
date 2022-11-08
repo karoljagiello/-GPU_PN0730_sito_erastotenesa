@@ -1,0 +1,3 @@
+﻿  test.cpp
+C:\Users\patri\source\repos\test\test.cpp(19,26): warning C4267: "inicjowanie": konwersja z "size_t" do "int", możliwa utrata danych
+  test.vcxproj -> C:\Users\patri\source\repos\test\x64\Debug\test.exe
