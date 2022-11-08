@@ -1,1 +1,2 @@
 C:\Users\patri\source\repos\test\x64\Debug\test.exe
+C:\Users\patri\OneDrive\Pulpit\-GPU_PN0730_sito_erastotenesa\test-gpu\x64\Debug\test.exe
