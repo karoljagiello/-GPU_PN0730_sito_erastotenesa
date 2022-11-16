@@ -1,0 +1,4 @@
+﻿  Main.cpp
+C:\Users\Łukasz\source\repos\GPU\GPU\Main.cpp(154,14): warning C4244: "inicjowanie": konwersja z "double" do "float", możliwa utrata danych
+C:\Users\Łukasz\source\repos\GPU\GPU\Main.cpp(155,24): warning C4244: "inicjowanie": konwersja z "float" do "size_t", możliwa utrata danych
+  GPU.vcxproj -> C:\Users\Łukasz\source\repos\GPU\x64\Debug\GPU.exe

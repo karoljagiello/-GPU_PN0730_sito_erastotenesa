@@ -1,0 +1,2 @@
+﻿  Main.cpp
+C:\Program Files\NVIDIA GPU Computing Toolkit\CUDA\v11.8\include\CL\cl.hpp(177,10): fatal error C1083: Nie można otworzyć pliku dołącz: 'CL/opencl.h': No such file or directory
