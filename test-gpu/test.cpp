@@ -170,7 +170,7 @@ size_t closestDiv(long long int N);
 
 int main()
 {
-	cl_long N = 200000000; //zakres od 0 do N 
+	cl_long N = 10000000; //zakres od 0 do N 
 	std::cout << "Zakres do: " << N << std::endl;
 	N += 1;
 	//prototyp1(N);
@@ -474,7 +474,8 @@ void prototyp3(cl_long N) //liczenie dzielników po kolei, pomijaj¹c usuniête
 	for (int i = 2; i <=rootN; i++)
 	{
 		if (dividers[i] > 0) divs.push_back(i);
-	}
+	} //do zoptymalizowania
+
 
 	//for (int i = 0; i < N * divs.size() - 2*divs.size(); i++)
 	//{
@@ -495,7 +496,8 @@ void prototyp3(cl_long N) //liczenie dzielników po kolei, pomijaj¹c usuniête
 	err = kernel2.setArg(1, Buf3);
 	int dSize = divs.size();
 	err = kernel2.setArg(2, dSize);
-	size_t D = closestDiv(count);
+	//size_t D = closestDiv(count); //do zoptymalizowania
+	size_t D = dSize;
 	size_t D2 = size_t(count / D);
 
 	err = queue.enqueueNDRangeKernel(kernel2, cl::NullRange, cl::NDRange(D,D2));
