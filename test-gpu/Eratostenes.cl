@@ -20,7 +20,7 @@ __kernel void prototyp1(__global int* data, int size, int rootSize)
 
 __kernel void prototyp11(__global int* data, int size, int rootSize)
 {
-    size_t index = get_global_id(0);
+    long int index = (get_global_id(1) * get_global_size(0)) + get_global_id(0);
     int element = index/rootSize;
     element +=2;
     int dzielnik = index % rootSize;
@@ -35,7 +35,7 @@ __kernel void prototyp11(__global int* data, int size, int rootSize)
 
  __kernel void p12(__global int* data, __global int* data2, int divN)
 {
-    size_t index = get_global_id(0);
+    long int index = (get_global_id(1) * get_global_size(0)) + get_global_id(0);
     int element = index/divN;
     element +=2;
     int dzielnik = index % divN;
@@ -60,10 +60,10 @@ __kernel void prototyp2(__global int* data, int div)
     //data[index] = index;
 }
 
-__kernel void test1(__global int* data, __global int* data2)
+__kernel void test1(__global int* data,__global int* data2)
 {
-    size_t index = get_global_id(0);
-    data[index] = data2[index];
+    long long int index = (get_global_id(1) * get_global_size(0)) + get_global_id(0);
+    data[index] = index;
     data2[index] = index;
 }
 

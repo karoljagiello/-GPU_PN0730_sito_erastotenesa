@@ -159,23 +159,29 @@ long long int read_QPC() //funkcja mierzenia czasu
 //
 //	std::cin.get();
 //}
-void prototyp1(const cl_int N); //wszystko naraz, brak wykresliania
-void prototyp2(const cl_int N); //dzielniki po kolei, z wykreslaniem
-void prototyp3(cl_int N); //wykreslanie dzielnikow, potem wszystko naraz
-void arraytest();
+//void prototyp1(const cl_long N); //wszystko naraz, brak wykresliania
+//void prototyp2(const cl_long N); //dzielniki po kolei, z wykreslaniem
+void prototyp1(const cl_long N);
+void prototyp2(const cl_long N);
+void prototyp3(cl_long N); //wykreslanie dzielnikow, potem wszystko naraz
+void arraytest(cl_long N);
+void sizetest(cl_long N);
+size_t closestDiv(long long int N);
 
 int main()
 {
-	cl_int N = 9000000; //zakres od 0 do N 
+	cl_long N = 200000000; //zakres od 0 do N 
 	std::cout << "Zakres do: " << N << std::endl;
 	N += 1;
-	prototyp1(N);
-	prototyp2(N);
+	//prototyp1(N);
+	//prototyp2(N);
 	prototyp3(N);
-	//arraytest();
+	//arraytest(N);
+	//sizetest(N);
+	//closestDiv(N);
 }
 
-void prototyp1(const cl_int N) //nie ma usuwania elementow, wszystkie od 2 do sqrt(N) dzielniki s¹ liczone
+void prototyp1(const cl_long N) //nie ma usuwania elementow, wszystkie od 2 do sqrt(N) dzielniki s¹ liczone
 {
 	std::cout << "PROTOTYP 1: ----------" << std::endl;
 	long long int frequency, start, elapsed; //elementy do mierzenia czasu
@@ -219,11 +225,12 @@ void prototyp1(const cl_int N) //nie ma usuwania elementow, wszystkie od 2 do sq
 	kernel.setArg(1, N);
 	kernel.setArg(2, rootN-1);
 	cl::CommandQueue queue(context, device, 0, &err);
-
+	long long int count = ((rootN - 1) * (N - 1));
+	long long D = pow(count, 0.5) + 1;
 	//queue.enqueueNDRangeKernel(kernel, cl::NullRange, cl::NDRange(rootN+1));
 	//queue.enqueueReadBuffer(Buf, CL_FALSE, 0, sizeof(int) * EratosVec.size(), EratosVec.data());
 	//queue.enqueueNDRangeKernel(kernel, cl::NullRange, cl::NDRange((rootN-1)*N), cl::NDRange(N-1)); 
-	queue.enqueueNDRangeKernel(kernel, cl::NullRange, cl::NDRange((rootN - 1) * (N-1)), cl::NDRange(32));
+	queue.enqueueNDRangeKernel(kernel, cl::NullRange, cl::NDRange(D,D));
 
 	start = read_QPC(); //start pomiaru czasu
 
@@ -273,7 +280,7 @@ void prototyp1(const cl_int N) //nie ma usuwania elementow, wszystkie od 2 do sq
 
 } //
 
-void prototyp2(const cl_int N) //liczenie dzielników po kolei, pomijaj¹c usuniête
+void prototyp2(const cl_long N) //liczenie dzielników po kolei, pomijaj¹c usuniête
 {
 	std::cout << "PROTOTYP 2: ----------" << std::endl;
 	long long int frequency, start, elapsed; //elementy do mierzenia czasu
@@ -331,9 +338,9 @@ void prototyp2(const cl_int N) //liczenie dzielników po kolei, pomijaj¹c usuniêt
 		
 		kernel.setArg(1, i);
 		cl::CommandQueue queue(context, device, CL_QUEUE_OUT_OF_ORDER_EXEC_MODE_ENABLE, &err);
-		queue.enqueueNDRangeKernel(kernel, cl::NullRange, cl::NDRange(N-2), cl::NDRange(128));
+		queue.enqueueNDRangeKernel(kernel, cl::NullRange, cl::NDRange(N-2));
 		queue.enqueueReadBuffer(Buf, CL_FALSE, 0, sizeof(int) * EratosVec.size(), EratosVec.data());
-		//cl::finish();
+		cl::finish();
 	}
 
 	
@@ -394,7 +401,7 @@ void prototyp2(const cl_int N) //liczenie dzielników po kolei, pomijaj¹c usuniêt
 
 }
 
-void prototyp3(cl_int N) //liczenie dzielników po kolei, pomijaj¹c usuniête
+void prototyp3(cl_long N) //liczenie dzielników po kolei, pomijaj¹c usuniête
 {
 	std::cout << "PROTOTYP 3: ----------" << std::endl;
 	long long int frequency, start, elapsed; //elementy do mierzenia czasu
@@ -458,7 +465,7 @@ void prototyp3(cl_int N) //liczenie dzielników po kolei, pomijaj¹c usuniête
 	kernel.setArg(1, rootN);
 	kernel.setArg(2, rootrootN-1);
 	cl::CommandQueue queue(context, device, 0, &err);
-	err = queue.enqueueNDRangeKernel(kernel, cl::NullRange, cl::NDRange((rootN - 1) * (rootrootN - 1)), cl::NDRange(32));
+	err = queue.enqueueNDRangeKernel(kernel, cl::NullRange, cl::NDRange((rootN - 1) * (rootrootN - 1)));
 	err = queue.enqueueReadBuffer(Buf1, CL_TRUE, 0, sizeof(int) * dividers.size(), dividers.data());
 	cl::finish();
 	
@@ -488,9 +495,10 @@ void prototyp3(cl_int N) //liczenie dzielników po kolei, pomijaj¹c usuniête
 	err = kernel2.setArg(1, Buf3);
 	int dSize = divs.size();
 	err = kernel2.setArg(2, dSize);
+	size_t D = closestDiv(count);
+	size_t D2 = size_t(count / D);
 
-	
-	err = queue.enqueueNDRangeKernel(kernel2, cl::NullRange, cl::NDRange(count), cl::NDRange(32));
+	err = queue.enqueueNDRangeKernel(kernel2, cl::NullRange, cl::NDRange(D,D2));
 	err = queue.enqueueReadBuffer(Buf2, CL_TRUE, 0, sizeof(int) * results.size(), results.data());
 	//err = queue.enqueueReadBuffer(Buf3, CL_FALSE, 0, sizeof(int) * divs.size(), divs.data());
 
@@ -510,7 +518,9 @@ void prototyp3(cl_int N) //liczenie dzielników po kolei, pomijaj¹c usuniête
 	std::cout << liczba << " <- tyle liczb pierwszych w zakresie" << std::endl;
 	//std::cout << (rootN - 1) * N << "<- tyle w sumie jest work-itemow" << std::endl;
 
-	std::cout << count << " <- tyle itemow uruchomionych naraz" << std::endl;
+	std::cout << D << " <- dzielnik" << std::endl;
+	std::cout << D * D2 << " <- tyle itemow uruchomionych naraz 2" << std::endl;
+	std::cout << D * D2 - count << " <- liczba nadmiarowych w¹tków" << std::endl;
 	long long int lli = INT_MAX;
 	std::cout << lli * 2 << " <- tyle size_t max" << std::endl;
 	
@@ -519,7 +529,7 @@ void prototyp3(cl_int N) //liczenie dzielników po kolei, pomijaj¹c usuniête
 	std::cin.get();
 }
 
-void arraytest()
+void arraytest(cl_long N)
 {
 	std::cout << "TEST 1: ----------" << std::endl;
 	long long int frequency, start, elapsed; //elementy do mierzenia czasu
@@ -527,8 +537,8 @@ void arraytest()
 
 
 	//ustalenie paramterów i tablicy
-	std::vector<int> v1(100, 1);
-	std::vector<int> v2(100, 2);
+	std::vector<int> v1(N, 1);
+	std::vector<int> v2(N, 2);
 
 
 
@@ -566,13 +576,13 @@ void arraytest()
 
 	cl::CommandQueue queue(context, device, 0, &err);
  
-	queue.enqueueNDRangeKernel(kernel, cl::NullRange, cl::NDRange(100), cl::NDRange(32));
+	queue.enqueueNDRangeKernel(kernel, cl::NullRange, cl::NDRange(N), cl::NDRange(32));
 	//queue.enqueueReadBuffer(Buf2, CL_TRUE, 0, sizeof(int) * v2.size(), v2.data());
 	queue.enqueueReadBuffer(Buf, CL_TRUE, 0, sizeof(int) * v1.size(), v1.data());
 	cl::finish();
 
-	std::vector<int> v3(100, 3);
-	std::vector<int> v4(100, 5);
+	std::vector<int> v3(N, 3);
+	std::vector<int> v4(N, 5);
 
 	cl::Buffer Buf3(context, CL_MEM_READ_WRITE | CL_MEM_HOST_READ_ONLY | CL_MEM_COPY_HOST_PTR, sizeof(int) * v3.size(), v3.data(), &err); //tworzenie buffora wejœciowego, rozmiar int razy wielkoœæ wektora
 	cl::Buffer Buf4(context, CL_MEM_READ_WRITE | CL_MEM_HOST_READ_ONLY | CL_MEM_COPY_HOST_PTR, sizeof(int) * v4.size(), v4.data(), &err);
@@ -583,7 +593,7 @@ void arraytest()
 	//err = kernel2.setArg(2, divs.size());
 
 
-	err = queue.enqueueNDRangeKernel(kernel2, cl::NullRange, cl::NDRange(100), cl::NDRange(32));
+	err = queue.enqueueNDRangeKernel(kernel2, cl::NullRange, cl::NDRange(N), cl::NDRange(32));
 	err = queue.enqueueReadBuffer(Buf3, CL_TRUE, 0, sizeof(int) * v3.size(), v3.data());
 	//err = queue.enqueueReadBuffer(Buf3, CL_FALSE, 0, sizeof(int) * divs.size(), divs.data());
 
@@ -591,4 +601,78 @@ void arraytest()
 
 	std::cin.get();
 
+}
+
+void sizetest(cl_long N)
+{
+	std::cout << "TEST 1: ----------" << std::endl;
+	long long int frequency, start, elapsed; //elementy do mierzenia czasu
+	QueryPerformanceFrequency((LARGE_INTEGER*)&frequency);
+
+
+	//ustalenie paramterów i tablicy
+	std::vector<int> v1(N, 1);
+	std::vector<int> v2(N, 2);
+	int rootN = sqrt(N);
+
+
+	//ustawienia pod openCL
+	std::vector<cl::Platform> platforms;
+	cl::Platform::get(&platforms);
+
+	auto platform = platforms.front();
+	std::vector<cl::Device> devices;
+	platform.getDevices(CL_DEVICE_TYPE_GPU, &devices);
+
+
+	auto device = devices.front(); //wybranie pierwszego urz¹dzenia z listy
+
+
+	std::ifstream kernelFile("Eratostenes.cl"); //zaladowanie strumienia pliku tekstowego
+	std::string src(std::istreambuf_iterator<char>(kernelFile), (std::istreambuf_iterator<char>())); //zaladowanie zawartoœci do stringa
+
+	cl::Program::Sources sources(1, std::make_pair(src.c_str(), src.length() + 1)); //?
+
+	cl::Context context(device); //urz¹dzenie mog¹ce przetwarzaæ openCL
+
+	cl::Program program(context, sources); //stworzenie programu ze Ÿród³a i contextu
+
+	auto err = program.build("-cl-std=CL2.0"); //budowanie, ewentualny error
+	err = 0;
+
+	cl::Buffer Buf(context, CL_MEM_READ_WRITE | CL_MEM_HOST_READ_ONLY | CL_MEM_COPY_HOST_PTR, sizeof(int) * v1.size(), v1.data(), &err); //tworzenie buffora wejœciowego, rozmiar int razy wielkoœæ wektora
+	cl::Buffer Buf2(context, CL_MEM_READ_WRITE | CL_MEM_HOST_READ_ONLY | CL_MEM_COPY_HOST_PTR, sizeof(int) * v2.size(), v2.data(), &err); //tworzenie buffora wejœciowego, rozmiar int razy wielkoœæ wektora
+
+	cl::Kernel kernel(program, "test1");
+
+	err = kernel.setArg(0, Buf);
+	err = kernel.setArg(1, Buf2);
+
+	cl::CommandQueue queue(context, device, 0, &err);
+
+	queue.enqueueNDRangeKernel(kernel, cl::NullRange, cl::NDRange(rootN+1,rootN+1));
+	queue.enqueueReadBuffer(Buf2, CL_TRUE, 0, sizeof(int) * v2.size(), v2.data());
+	queue.enqueueReadBuffer(Buf, CL_TRUE, 0, sizeof(int) * v1.size(), v1.data());
+
+	cl::finish();
+	std::cout << "najwyzszy index/wartosc:" <<N - 1 <<"/"<<v2[N-1]<< std::endl;
+
+	std::cout << ((rootN+1) * (rootN*1)) << " <- tyle itemow uruchomionych naraz" << std::endl;
+	long long int lli = INT_MAX;
+	std::cout << lli * 2 << " <- tyle size_t max" << std::endl;
+
+	std::cin.get();
+}
+
+size_t closestDiv(long long int N)
+{
+	int root = sqrt(N);
+	while (root>1)
+	{
+		if (N % root == 0) break;
+		else root--;
+	}
+	size_t r = N / root;
+	//std::cout << "znaleziono: " <<N<< ":"<<root<< "="<<r<<  std::endl;
+	return r;
 }
