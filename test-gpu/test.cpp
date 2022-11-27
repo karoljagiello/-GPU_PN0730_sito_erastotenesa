@@ -170,15 +170,21 @@ size_t closestDiv(long long int N);
 
 int main()
 {
-	cl_long N = 10000000; //zakres od 0 do N 
-	std::cout << "Zakres do: " << N << std::endl;
-	N += 1;
-	//prototyp1(N);
-	//prototyp2(N);
-	prototyp3(N);
-	//arraytest(N);
-	//sizetest(N);
-	//closestDiv(N);
+	for (cl_long N = 100000; N < 100000000; N *= 10)
+	{
+		for (int i = 0; i < 5; i++)
+		{
+			//cl_long N = 1000000;
+			//zakres od 0 do N 
+			std::cout << "Zakres do: " << N << std::endl;
+			//prototyp1(N);
+			//prototyp2(N);
+			prototyp3(N + 1);
+			//arraytest(N);
+			//sizetest(N);
+			//closestDiv(N);
+		}
+	}
 }
 
 void prototyp1(const cl_long N) //nie ma usuwania elementow, wszystkie od 2 do sqrt(N) dzielniki s¹ liczone
@@ -411,7 +417,6 @@ void prototyp3(cl_long N) //liczenie dzielników po kolei, pomijaj¹c usuniête
 	//ustalenie paramterów i tablicy
 	int rootN = pow(N, 0.5);
 	int rootrootN = pow(rootN, 0.5);
-	std::vector<int> EratosVec(N, 1);
 
 
 
@@ -439,11 +444,11 @@ void prototyp3(cl_long N) //liczenie dzielników po kolei, pomijaj¹c usuniête
 	auto err = program.build("-cl-std=CL2.0"); //budowanie, ewentualny error
 	err = 0;
 
-	std::vector<int> dividers(rootN+1, 1);
+	std::vector<cl_char> dividers(rootN+1, 1); //zamienic na boole
 
 	start = read_QPC(); //start pomiaru czasu
 
-	cl::Buffer Buf1(context, CL_MEM_READ_WRITE | CL_MEM_HOST_READ_ONLY | CL_MEM_COPY_HOST_PTR, sizeof(int) * dividers.size(), dividers.data(), &err); //tworzenie buffora wejœciowego, rozmiar int razy wielkoœæ wektora
+	cl::Buffer Buf1(context, CL_MEM_WRITE_ONLY | CL_MEM_HOST_READ_ONLY | CL_MEM_COPY_HOST_PTR, sizeof(cl_char) * dividers.size(), dividers.data(), &err); //tworzenie buffora wejœciowego, rozmiar int razy wielkoœæ wektora
 
 		//std::cout << i << std::endl;
 	int element;
@@ -462,12 +467,13 @@ void prototyp3(cl_long N) //liczenie dzielników po kolei, pomijaj¹c usuniête
 
 	cl::Kernel kernel(program, "prototyp11");
 	err = kernel.setArg(0, Buf1);
-	kernel.setArg(1, rootN);
+	kernel.setArg(1, rootN); //do wywalenia
 	kernel.setArg(2, rootrootN-1);
-	cl::CommandQueue queue(context, device, 0, &err);
+	cl::CommandQueue queue(context, device, CL_QUEUE_OUT_OF_ORDER_EXEC_MODE_ENABLE, &err);
 	err = queue.enqueueNDRangeKernel(kernel, cl::NullRange, cl::NDRange((rootN - 1) * (rootrootN - 1)));
-	err = queue.enqueueReadBuffer(Buf1, CL_TRUE, 0, sizeof(int) * dividers.size(), dividers.data());
+	err = queue.enqueueReadBuffer(Buf1, CL_TRUE, 0, sizeof(cl_char) * dividers.size(), dividers.data());
 	cl::finish();
+	cl::flush();
 	
 
 	std::vector<int> divs;
@@ -486,10 +492,12 @@ void prototyp3(cl_long N) //liczenie dzielników po kolei, pomijaj¹c usuniête
 	//	std::cout << "element: " <<element << ", dzielnik: " << dzielnik << std::endl;
 	//}
 	long long int count = N * divs.size() - 2 * divs.size();
-	std::vector<int> results(N,1);
+	std::vector<cl_char> results(N,1); //zamienic na boole
 
-	cl::Buffer Buf2(context, CL_MEM_READ_WRITE | CL_MEM_HOST_READ_ONLY | CL_MEM_COPY_HOST_PTR, sizeof(int) * results.size(), results.data(), &err); //tworzenie buffora wejœciowego, rozmiar int razy wielkoœæ wektora
-	cl::Buffer Buf3(context, CL_MEM_READ_WRITE | CL_MEM_HOST_READ_ONLY | CL_MEM_COPY_HOST_PTR, sizeof(int) * divs.size(), divs.data(), &err);
+	cl::Buffer Buf2(context, CL_MEM_WRITE_ONLY | CL_MEM_HOST_READ_ONLY | CL_MEM_COPY_HOST_PTR, sizeof(cl_char) * results.size(), results.data(), &err); //tworzenie buffora wejœciowego, rozmiar int razy wielkoœæ wektora
+	cl::Buffer Buf3(context, CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR, sizeof(int) * divs.size(), divs.data(), &err); //zamienic na tylko do odczytu
+
+	err = queue.enqueueWriteBuffer(Buf3, true, 0, sizeof(int) * divs.size(), divs.data());
 
 	cl::Kernel kernel2(program, "p12");
 	err = kernel2.setArg(0, Buf2);
@@ -498,10 +506,10 @@ void prototyp3(cl_long N) //liczenie dzielników po kolei, pomijaj¹c usuniête
 	err = kernel2.setArg(2, dSize);
 	//size_t D = closestDiv(count); //do zoptymalizowania
 	size_t D = dSize;
-	size_t D2 = size_t(count / D);
+	size_t D2 = size_t(count / D); //do zmiany na n-2
 
 	err = queue.enqueueNDRangeKernel(kernel2, cl::NullRange, cl::NDRange(D,D2));
-	err = queue.enqueueReadBuffer(Buf2, CL_TRUE, 0, sizeof(int) * results.size(), results.data());
+	err = queue.enqueueReadBuffer(Buf2, CL_TRUE, 0, sizeof(cl_char) * results.size(), results.data());
 	//err = queue.enqueueReadBuffer(Buf3, CL_FALSE, 0, sizeof(int) * divs.size(), divs.data());
 
 	cl::finish();
@@ -520,15 +528,15 @@ void prototyp3(cl_long N) //liczenie dzielników po kolei, pomijaj¹c usuniête
 	std::cout << liczba << " <- tyle liczb pierwszych w zakresie" << std::endl;
 	//std::cout << (rootN - 1) * N << "<- tyle w sumie jest work-itemow" << std::endl;
 
-	std::cout << D << " <- dzielnik" << std::endl;
-	std::cout << D * D2 << " <- tyle itemow uruchomionych naraz 2" << std::endl;
-	std::cout << D * D2 - count << " <- liczba nadmiarowych w¹tków" << std::endl;
+	//std::cout << D << " <- dzielnik" << std::endl;
+	//std::cout << D * D2 << " <- tyle itemow uruchomionych naraz 2" << std::endl;
+	//std::cout << D * D2 - count << " <- liczba nadmiarowych w¹tków" << std::endl;
 	long long int lli = INT_MAX;
-	std::cout << lli * 2 << " <- tyle size_t max" << std::endl;
-	
+	//std::cout << lli * 2 << " <- tyle size_t max" << std::endl;
+	std::cout<< "---------------" << std::endl;
 	
 
-	std::cin.get();
+	//std::cin.get();
 }
 
 void arraytest(cl_long N)
@@ -563,20 +571,23 @@ void arraytest(cl_long N)
 
 	cl::Context context(device); //urz¹dzenie mog¹ce przetwarzaæ openCL
 
+	
+	auto err = 0;
 	cl::Program program(context, sources); //stworzenie programu ze Ÿród³a i contextu
 
-	auto err = program.build("-cl-std=CL2.0"); //budowanie, ewentualny error
-	err = 0;
+	err = program.build("-cl-std=CL2.0"); //budowanie, ewentualny error
 
 	cl::Buffer Buf(context, CL_MEM_READ_WRITE | CL_MEM_HOST_READ_ONLY | CL_MEM_COPY_HOST_PTR, sizeof(int) * v1.size(), v1.data(), &err); //tworzenie buffora wejœciowego, rozmiar int razy wielkoœæ wektora
-	cl::Buffer Buf2(context, CL_MEM_READ_WRITE | CL_MEM_HOST_READ_ONLY | CL_MEM_COPY_HOST_PTR, sizeof(int) * v2.size(), v2.data(), &err); //tworzenie buffora wejœciowego, rozmiar int razy wielkoœæ wektora
+	cl::Buffer Buf2(context, CL_MEM_READ_ONLY | CL_MEM_USE_HOST_PTR, sizeof(int) * v2.size(), v2.data(), &err); //tworzenie buffora wejœciowego, rozmiar int razy wielkoœæ wektora
+	cl::CommandQueue queue(context, device, 0, &err);
+	queue.enqueueWriteBuffer(Buf2, CL_TRUE, 0, sizeof(int) * v2.size(), v2.data());
 
 	cl::Kernel kernel(program, "test1");
 
 	err = kernel.setArg(0, Buf);
 	err = kernel.setArg(1, Buf2);
 
-	cl::CommandQueue queue(context, device, 0, &err);
+	
  
 	queue.enqueueNDRangeKernel(kernel, cl::NullRange, cl::NDRange(N), cl::NDRange(32));
 	//queue.enqueueReadBuffer(Buf2, CL_TRUE, 0, sizeof(int) * v2.size(), v2.data());
