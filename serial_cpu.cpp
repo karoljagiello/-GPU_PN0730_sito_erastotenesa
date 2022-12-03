@@ -54,10 +54,11 @@ int main(int argc, char** argv) {
         for (int i: primes) {
             printf("%d ", i);
         }
+        printf("\n");
     }
-    printf("\n");
-    double time_spent = (double)(end - begin) / CLOCKS_PER_SEC;
-    printf("Czas ekzegucji algorytmu w wersji sekwencyjnej na CPU: %lfs\n", time_spent);
+    double time_spent = (double)(end - begin) / CLOCKS_PER_SEC * 1000;
+    printf("c:%ld ", primes.size());
+    printf("%lf ", time_spent);
 
     return 0;
 }

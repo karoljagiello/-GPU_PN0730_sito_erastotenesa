@@ -67,6 +67,8 @@ void eratostenes_sieve_parallel(int argc, char **argv) {
         list2[c-L] = 0;
     }
 
+    int counter = 0;
+
     // Sito eratostenesa
     for(c = 2; c <= sqrt_n; c++) {
 
@@ -95,20 +97,22 @@ void eratostenes_sieve_parallel(int argc, char **argv) {
 
     // Jeżeli ranga procesu jest równa zero(proces główny) wyświetl wyniki
     if(r == 0) {
-        // // Wyświetlanie liczb pierwszych do pierwiastka z n
-        // for(c = 2; c <= sqrt_n; c++) {
-        //     if(list1[c] == 0) {
-        //         printf("%d ", c);
-        //     }
-        // }
+        // Wyświetlanie liczb pierwszych do pierwiastka z n
+        for(c = 2; c <= sqrt_n; c++) {
+            if(list1[c] == 0) {
+                // printf("%d ", c);
+                counter++;
+            }
+        }
 
-        // // Wyświetlanie liczb pierwszych dla przedziału powyżej pierwiastka z n
-        // // przydzielonego dla procesu o randze 0
-        // for(c = L; c <= H; c++) {
-        //     if(list2[c-L] == 0) {
-        //         printf("%d ", c);
-        //     }
-        // }
+        // Wyświetlanie liczb pierwszych dla przedziału powyżej pierwiastka z n
+        // przydzielonego dla procesu o randze 0
+        for(c = L; c <= H; c++) {
+            if(list2[c-L] == 0) {
+                // printf("%d ", c);
+                counter++;
+            }
+        }
 
         // Wyświetl liczby pierwsze obliczone przez pozostałe procesy
         for(r = 1; r <= p-1; r++) {
@@ -123,14 +127,15 @@ void eratostenes_sieve_parallel(int argc, char **argv) {
             // Zapytaj o obliczone liczby pierwsze z przedziału o randze r
             MPI_Recv(list2, H-L+1, MPI_INT, r, 0, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
 
-            // // Wyświetl liczby pierwsze z przedziału przydzielonemu procesowi o randze r
-            // for(c = L; c <= H; c++) {
-            //     if(list2[c-L] == 0) {
-            //         printf("%d ", c);
-            //     }
-            // }
+            // Wyświetl liczby pierwsze z przedziału przydzielonemu procesowi o randze r
+            for(c = L; c <= H; c++) {
+                if(list2[c-L] == 0) {
+                    // printf("%d ", c);
+                    counter++;
+                }
+            }
         }
-        // printf("\n");
+        printf("c:%d ", counter);
     }
     // Jeżeli proces nie jest procesem głwonym, zwróć procesowi głównemu listę liczb pierwszych
     // obliczonych dla przedziału przydzielonemu temu procesowi
@@ -151,8 +156,8 @@ int main(int argc, char **argv) {
     eratostenes_sieve_parallel(argc, argv);
 
     clock_t end = clock();
-    double time_spent = (double)(end - begin) / CLOCKS_PER_SEC;
-    printf("Czas ekzegucji algorytmu w wersji rownoległej na CPU: %lfs\n", time_spent);
+    double time_spent = (double)(end - begin) / CLOCKS_PER_SEC * 1000;
+    printf("%lf ", time_spent);
 
     return 0;
 }
