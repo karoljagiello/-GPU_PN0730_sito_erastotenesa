@@ -163,27 +163,34 @@ long long int read_QPC() //funkcja mierzenia czasu
 //void prototyp2(const cl_long N); //dzielniki po kolei, z wykreslaniem
 void prototyp1(const cl_long N);
 void prototyp2(const cl_long N);
-void prototyp3(cl_long N); //wykreslanie dzielnikow, potem wszystko naraz
+void prototyp3(cl_long N);
+long long int prototyp4(cl_long N); //wykreslanie dzielnikow, potem wszystko naraz
 void arraytest(cl_long N);
 void sizetest(cl_long N);
 size_t closestDiv(long long int N);
 
 int main()
 {
-	for (cl_long N = 100000; N < 100000000; N *= 10)
+	for (cl_long N = 1000; N <= 100000000; N *= 10)
 	{
+	std::cout << "Zakres do: " << N << std::endl;	
+	long long int frequency;
+	QueryPerformanceFrequency((LARGE_INTEGER*)&frequency);
+	long long int time = 0;
 		for (int i = 0; i < 5; i++)
 		{
-			//cl_long N = 1000000;
+			//cl_long N = 10000000;
 			//zakres od 0 do N 
-			std::cout << "Zakres do: " << N << std::endl;
 			//prototyp1(N);
 			//prototyp2(N);
-			prototyp3(N + 1);
+			//prototyp3(N + 1);
+			time += prototyp4(N + 1);
 			//arraytest(N);
 			//sizetest(N);
 			//closestDiv(N);
 		}
+		time /= 5;
+		std::cout << "Time [ms] = " << std::fixed << std::setprecision(3) << (1000.0 * time) / frequency << std::endl;
 	}
 }
 
@@ -469,11 +476,10 @@ void prototyp3(cl_long N) //liczenie dzielników po kolei, pomijaj¹c usuniête
 	err = kernel.setArg(0, Buf1);
 	kernel.setArg(1, rootN); //do wywalenia
 	kernel.setArg(2, rootrootN-1);
-	cl::CommandQueue queue(context, device, CL_QUEUE_OUT_OF_ORDER_EXEC_MODE_ENABLE, &err);
+	cl::CommandQueue queue(context, device, CL_QUEUE_PROFILING_ENABLE, &err);
 	err = queue.enqueueNDRangeKernel(kernel, cl::NullRange, cl::NDRange((rootN - 1) * (rootrootN - 1)));
 	err = queue.enqueueReadBuffer(Buf1, CL_TRUE, 0, sizeof(cl_char) * dividers.size(), dividers.data());
 	cl::finish();
-	cl::flush();
 	
 
 	std::vector<int> divs;
@@ -494,7 +500,7 @@ void prototyp3(cl_long N) //liczenie dzielników po kolei, pomijaj¹c usuniête
 	long long int count = N * divs.size() - 2 * divs.size();
 	std::vector<cl_char> results(N,1); //zamienic na boole
 
-	cl::Buffer Buf2(context, CL_MEM_WRITE_ONLY | CL_MEM_HOST_READ_ONLY | CL_MEM_COPY_HOST_PTR, sizeof(cl_char) * results.size(), results.data(), &err); //tworzenie buffora wejœciowego, rozmiar int razy wielkoœæ wektora
+	cl::Buffer Buf2(context, CL_MEM_WRITE_ONLY | CL_MEM_COPY_HOST_PTR, sizeof(cl_char) * results.size(), results.data(), &err); //tworzenie buffora wejœciowego, rozmiar int razy wielkoœæ wektora
 	cl::Buffer Buf3(context, CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR, sizeof(int) * divs.size(), divs.data(), &err); //zamienic na tylko do odczytu
 
 	err = queue.enqueueWriteBuffer(Buf3, true, 0, sizeof(int) * divs.size(), divs.data());
@@ -507,12 +513,16 @@ void prototyp3(cl_long N) //liczenie dzielników po kolei, pomijaj¹c usuniête
 	//size_t D = closestDiv(count); //do zoptymalizowania
 	size_t D = dSize;
 	size_t D2 = size_t(count / D); //do zmiany na n-2
-
-	err = queue.enqueueNDRangeKernel(kernel2, cl::NullRange, cl::NDRange(D,D2));
+	err = queue.enqueueNDRangeKernel(kernel2, cl::NullRange, cl::NDRange(D,D2), cl::NDRange(8,8));
+	queue.finish();
+	//elapsed = read_QPC() - start; //koniec pomiaru czasu
+	//std::cout << "Time [ms] = " << std::fixed << std::setprecision(3) << (1000.0 * elapsed) / frequency << std::endl;
+	//start = read_QPC();
 	err = queue.enqueueReadBuffer(Buf2, CL_TRUE, 0, sizeof(cl_char) * results.size(), results.data());
+	queue.finish();
 	//err = queue.enqueueReadBuffer(Buf3, CL_FALSE, 0, sizeof(int) * divs.size(), divs.data());
 
-	cl::finish();
+	
 
 
 	elapsed = read_QPC() - start; //koniec pomiaru czasu
@@ -536,6 +546,103 @@ void prototyp3(cl_long N) //liczenie dzielników po kolei, pomijaj¹c usuniête
 	std::cout<< "---------------" << std::endl;
 	
 
+	//std::cin.get();
+}
+
+long long int prototyp4(cl_long N) //liczenie dzielników po kolei, pomijaj¹c usuniête
+{
+	std::cout << "PROTOTYP 4: ---------- ";
+	long long int frequency, start, elapsed; //elementy do mierzenia czasu
+
+
+	//ustalenie paramterów i tablicy
+	int rootN = pow(N, 0.5); //pierwiastek z zakresu
+	int rootrootN = pow(rootN, 0.5); //pierwiastek z pierwiastka z zakresu
+
+
+
+	//ustawienia pod openCL
+	std::vector<cl::Platform> platforms;
+	cl::Platform::get(&platforms);
+
+	auto platform = platforms.front();
+	std::vector<cl::Device> devices;
+	platform.getDevices(CL_DEVICE_TYPE_GPU, &devices); //pobranie urz¹dzeñ obs³uguj¹cych GPU
+
+
+	auto device = devices.front(); //wybranie pierwszego urz¹dzenia z listy
+
+
+	std::ifstream kernelFile("Eratostenes.cl"); //zaladowanie strumienia pliku tekstowego
+	std::string src(std::istreambuf_iterator<char>(kernelFile), (std::istreambuf_iterator<char>())); //zaladowanie zawartoœci do stringa
+
+	cl::Program::Sources sources(1, std::make_pair(src.c_str(), src.length() + 1)); //?
+
+	cl::Context context(device); //urz¹dzenie mog¹ce przetwarzaæ openCL
+
+	cl::Program program(context, sources); //stworzenie programu ze Ÿród³a i contextu
+
+	auto err = program.build("-cl-std=CL2.0"); //budowanie, ewentualny error
+	err = 0;
+
+	std::vector<cl_char> dividers(rootN+1, 1); //stworzenie wektora na dzielniki
+
+	start = read_QPC(); //start pomiaru czasu
+
+	cl::Buffer Buf1(context, CL_MEM_WRITE_ONLY | CL_MEM_HOST_READ_ONLY | CL_MEM_COPY_HOST_PTR, sizeof(cl_char) * dividers.size(), dividers.data(), &err); //tworzenie buffora wyjœciowego, zawieraj¹cego sito do pierwiastka z zakresu
+
+	cl::Kernel kernel(program, "prototyp11"); //nazwa funkcji z pierwszym sitem
+	err = kernel.setArg(0, Buf1); //argument 1 - bufor
+	kernel.setArg(1, rootrootN-1); //argument 2 - pierwiastek z pierwiastka z zakresu - 1
+	cl::CommandQueue queue(context, device, 0, &err); //stworzenie kolejki
+	err = queue.enqueueNDRangeKernel(kernel, cl::NullRange, cl::NDRange((rootN - 1) * (rootrootN - 1))); //uruchomienie kernela do obliczenia dzielników do pierwiastka z zakresu (pierwiastek - 1, czyli zakres do którego liczymy potrzebujemy dzielników) * (pierwiastek z pierwiastka z zakresu - 1, czyli dzielniki przez które podzielimy liczby do pierwiastka)
+	err = queue.enqueueReadBuffer(Buf1, CL_TRUE, 0, sizeof(cl_char) * dividers.size(), dividers.data()); //odczytanie sita
+	cl::finish();
+	
+	//elapsed = read_QPC() - start; //koniec pomiaru czasu
+	//std::cout << "Time [ms] = " << std::fixed << std::setprecision(3) << (1000.0 * elapsed) / frequency << std::endl;
+
+
+	std::vector<int> divs;
+	for (int i = 2; i <=rootN; i++) //odczytanie wszystkich liczb pierwszych ze stworzonego sita i zapisanie ich do wektora divs
+	{
+		if (dividers[i] > 0) divs.push_back(i);
+	} 
+
+	std::vector<cl_char> results(N,1);  //wektor z sitem koncowym
+
+	cl::Buffer Buf2(context, CL_MEM_WRITE_ONLY | CL_MEM_COPY_HOST_PTR, sizeof(cl_char) * results.size(), results.data(), &err); //bufor wyjsciowy
+	cl::Buffer Buf3(context, CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR, sizeof(int) * divs.size(), divs.data(), &err); //bufor wejœciowy, tablica liczb pierwszych-dzielnikow do pierwiastka z N
+
+	err = queue.enqueueWriteBuffer(Buf3, true, 0, sizeof(int) * divs.size(), divs.data()); //zapisanie buforu wejsciowego
+
+	cl::Kernel kernel2(program, "wersja1"); //kernel z sitem, gdy posiadamy ju¿ dzielniki
+	err = kernel2.setArg(0, Buf2); //bufor wyjœciowy - sito
+	err = kernel2.setArg(1, Buf3); //bufor wejœciowy - dzielniki
+	int dSize = divs.size();
+	err = kernel2.setArg(2, dSize); //liczba dzielnikow-liczb pierwszych do pierwiastka z N
+	err = kernel2.setArg(3, rootN); //pierwiastek z N
+	err = queue.enqueueNDRangeKernel(kernel2, cl::NullRange, cl::NDRange((N-rootN+1))); //liczba kerneli - N - rootN, poniewa¿ pierwiastki do rootN mamy ju¿ policzone, nie ma sensu liczyæ ich ponownie
+	err = queue.enqueueReadBuffer(Buf2, CL_TRUE, 0, sizeof(cl_char) * results.size(), results.data()); //odczytanie sita
+	queue.finish();
+
+	elapsed = read_QPC() - start; //koniec pomiaru czasu
+	//std::cout << "Time [ms] = " << std::fixed << std::setprecision(3) << (1000.0 * elapsed) / frequency << std::endl;
+
+
+	int liczba = 0;
+
+	for (long int i = rootN+1; i < N; i++) 
+	{
+		if (results[i] == 1)
+		{
+			liczba++;
+			//std::cout << i << std::endl;
+		}//zliczenie liczb pierwszych od pierwiastka z N, do N
+	}
+	std::cout << liczba+dSize << std::endl; //suma liczb pierwszych do pierwiastka z N, i od pierwiastka z N do N
+
+	return elapsed;
 	//std::cin.get();
 }
 
