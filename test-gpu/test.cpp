@@ -171,7 +171,7 @@ size_t closestDiv(long long int N);
 
 int main()
 {
-	for (cl_long N = 1000; N <= 100000000; N *= 10)
+	for (cl_long N = 10000000; N <= 200000000; N += 10000000)
 	{
 	std::cout << "Zakres do: " << N << std::endl;	
 	long long int frequency;
@@ -551,7 +551,7 @@ void prototyp3(cl_long N) //liczenie dzielników po kolei, pomijaj¹c usuniête
 
 long long int prototyp4(cl_long N) //liczenie dzielników po kolei, pomijaj¹c usuniête
 {
-	std::cout << "PROTOTYP 4: ---------- ";
+	//std::cout << "PROTOTYP 4: ---------- ";
 	long long int frequency, start, elapsed; //elementy do mierzenia czasu
 
 
@@ -620,9 +620,10 @@ long long int prototyp4(cl_long N) //liczenie dzielników po kolei, pomijaj¹c usu
 	err = kernel2.setArg(0, Buf2); //bufor wyjœciowy - sito
 	err = kernel2.setArg(1, Buf3); //bufor wejœciowy - dzielniki
 	int dSize = divs.size();
+	int rootNeven = rootN - rootN % 2; //zmienienie pierwiastka na liczbê parzyst¹, w celu zachowania (nie)parzystoœci
 	err = kernel2.setArg(2, dSize); //liczba dzielnikow-liczb pierwszych do pierwiastka z N
-	err = kernel2.setArg(3, rootN); //pierwiastek z N
-	err = queue.enqueueNDRangeKernel(kernel2, cl::NullRange, cl::NDRange((N-rootN+1))); //liczba kerneli - N - rootN, poniewa¿ pierwiastki do rootN mamy ju¿ policzone, nie ma sensu liczyæ ich ponownie
+	err = kernel2.setArg(3, rootNeven); //pierwiastek z N
+	err = queue.enqueueNDRangeKernel(kernel2, cl::NullRange, cl::NDRange((N-rootN+1)/2)); //liczba kerneli - N - rootN, poniewa¿ pierwiastki do rootN mamy ju¿ policzone, nie ma sensu liczyæ ich ponownie
 	err = queue.enqueueReadBuffer(Buf2, CL_TRUE, 0, sizeof(cl_char) * results.size(), results.data()); //odczytanie sita
 	queue.finish();
 
@@ -632,7 +633,7 @@ long long int prototyp4(cl_long N) //liczenie dzielników po kolei, pomijaj¹c usu
 
 	int liczba = 0;
 
-	for (long int i = rootN+1; i < N; i++) 
+	for (long int i = rootNeven+1 + 2*(rootN%2); i < N; i+=2) //sprawdzamy liczby od pierwiastka z N +1 (bo od do tego zakresu ju¿ sprawdziliœmy, +2, jeœli liczba jest nieparzysta (¿eby nie zliczyæ dwa razy tego samego elementu co w dzielnikach)
 	{
 		if (results[i] == 1)
 		{
@@ -640,9 +641,9 @@ long long int prototyp4(cl_long N) //liczenie dzielników po kolei, pomijaj¹c usu
 			//std::cout << i << std::endl;
 		}//zliczenie liczb pierwszych od pierwiastka z N, do N
 	}
-	std::cout << liczba+dSize << std::endl; //suma liczb pierwszych do pierwiastka z N, i od pierwiastka z N do N
+	//std::cout << liczba+dSize << std::endl; //suma liczb pierwszych do pierwiastka z N, i od pierwiastka z N do N
 
-	return elapsed;
+	return elapsed; //zwrot czasu 
 	//std::cin.get();
 }
 

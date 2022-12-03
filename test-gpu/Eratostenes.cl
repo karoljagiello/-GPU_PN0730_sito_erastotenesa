@@ -51,6 +51,7 @@ __kernel void prototyp11(__global char* data, int rootSize)
  __kernel void wersja1(__global char* data, __global int* data2, int divN, int rootn) 
 {
     int element = (get_global_id(1) * get_global_size(0)) + get_global_id(0); //wyliczenie indeksu
+    element = 2*element+1; //dla sprawdzenia tylko elementow nieparzystych
     element +=rootn; //dodanie pierwiastka z N (bo od tego zakresu liczymy)
     int Dzielnik=0; 
     for(int i=0; i<divN; i++) //dzielenie elementu, przez każdy z dzielnikow
@@ -59,7 +60,7 @@ __kernel void prototyp11(__global char* data, int rootSize)
         if(element == Dzielnik) continue;
         if(element%Dzielnik == 0) //jeśli element jest podzielny, to znaczy ze nie jest liczbą piewszą, usuwamy więc go z sita, i kończymy sprawdzanie elementu
         {
-            data[element] = data[element] >> 1;
+            data[element] = data[element] >> 1; //przesuniecie bitowe jest szybsze niż = 0
             //data[element] = 0;
             return;
         }
